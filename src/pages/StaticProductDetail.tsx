@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronDown, Heart, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, Heart, Minus, Plus, Ruler } from "lucide-react";
 import { StoreHeader } from "@/components/StoreHeader";
+import { SizeChartModal } from "@/components/SizeChartModal";
 import { StoreFooter } from "@/components/StoreFooter";
 import { getProductByHandle } from "@/data/staticProducts";
 import { useCartStore } from "@/stores/cartStore";
