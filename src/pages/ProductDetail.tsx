@@ -188,10 +188,20 @@ export default function ProductDetail() {
 
             {product.options.map((option) => (
               <div key={option.name} className="mt-6">
-                <p className="mb-3 font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
-                  {option.name}
-                  {currentVariant && <span className="ml-2 text-muted-foreground">— {currentVariant.selectedOptions.find((o) => o.name === option.name)?.value}</span>}
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
+                    {option.name}
+                    {currentVariant && <span className="ml-2 text-muted-foreground">— {currentVariant.selectedOptions.find((o) => o.name === option.name)?.value}</span>}
+                  </p>
+                  {option.name.toLowerCase() === "size" && (
+                    <button
+                      onClick={() => setSizeChartOpen(true)}
+                      className="flex items-center gap-1 font-sans text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Ruler className="h-3 w-3" /> Size Guide
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {option.values.map((value) => {
                     const matchingVariant = product.variants.edges.find((v) => v.node.selectedOptions.some((o) => o.name === option.name && o.value === value));
