@@ -10,56 +10,62 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { gender, occasion, style, products } = await req.json();
+    const { gender, vibe, products } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const productList = products
-      .map((p: any) => `- ID: "${p.id}" | Title: "${p.title}" | Category: ${p.category} | Tags: [${p.tags.join(", ")}] | Price: ${p.price} ${p.currency}`)
+      .map((p: any) => `- ID: "${p.id}" | Title: "${p.title}" | Tags: [${p.tags.join(", ")}] | Price: ${p.price} ${p.currency}`)
       .join("\n");
 
-    const systemPrompt = `You are an elite fashion stylist for a luxury old-money aesthetic brand. You create complete, cohesive outfits from the available product catalog.
+    const systemPrompt = `You are an elite personal stylist with 20 years of experience in luxury old-money fashion. You have an extraordinary eye for color coordination, fabric pairing, and creating cohesive looks.
 
-RULES:
-1. You can ONLY recommend products from the provided catalog — never invent items.
-2. An outfit can have 1 to 4 pieces. Not every category needs to be filled.
-3. If there are no pants, bottoms, or shoes in the catalog, do NOT mention them or suggest the user buy them. Simply build the best outfit from what's available.
-4. Focus on color harmony, style cohesion, and the old-money aesthetic.
-5. Consider the gender, occasion, and style preferences provided.
-6. For each selected item, explain WHY it works in the outfit.
+YOUR MISSION: Build a complete, wearable outfit from the given product catalog. Think like a real stylist — consider texture contrast, color harmony, layering potential, and silhouette balance.
 
-IMPORTANT: Respond ONLY with valid JSON in this exact format:
+CRITICAL RULES:
+1. ONLY use products from the provided catalog. Never invent items.
+2. Pick 2-4 pieces that genuinely look good together.
+3. If no shoes, pants, or a certain category exists — that's fine. Build with what you have. Do NOT apologize or mention missing categories. A sweater + jacket combo IS a valid outfit suggestion.
+4. Think about how the pieces ACTUALLY look together: color clashing, texture mixing, proportions.
+5. Each piece must have a clear role: base layer, mid layer, outer layer, accent, footwear.
+6. The outfit name should be evocative and aspirational — like a fashion editorial title.
+
+PLACEMENT ZONES (for visual display on mannequin):
+- "head": hats, caps, beanies
+- "top": t-shirts, shirts, sweaters, hoodies (worn closest to body)
+- "mid": cardigans, quarter-zips, light jackets (layered over top)
+- "outer": coats, heavy jackets (outermost layer)
+- "bottom": pants, trousers, shorts, skirts
+- "feet": shoes, sneakers, boots
+- "accessory": bags, scarves, watches, jewelry
+
+Assign EXACTLY ONE zone per product. If a product could go in multiple zones, pick the most logical one based on layering.
+
+RESPOND ONLY with valid JSON:
 {
-  "outfitName": "A creative, evocative name for this outfit",
+  "outfitName": "Editorial-style name",
   "selectedProductIds": ["id1", "id2"],
-  "explanation": "2-3 sentences on the overall outfit vision and why these pieces work together",
-  "piecesBreakdown": [
+  "explanation": "2-3 sentences on the overall vision. Be specific about WHY these pieces work together — mention colors, textures, silhouettes.",
+  "pieces": [
     {
       "productId": "id1",
-      "role": "e.g. Base Layer, Statement Piece, Accent",
-      "reason": "Why this piece was chosen"
+      "zone": "top",
+      "role": "Base Layer",
+      "reason": "Specific reason this piece was chosen"
     }
   ],
-  "stylingTips": ["Actionable styling tip 1", "Tip 2"],
-  "alternativeSwaps": [
-    {
-      "originalId": "id1",
-      "alternativeId": "id2",
-      "reason": "Why this swap works"
-    }
-  ]
-}
+  "stylingTips": ["Very specific, actionable tip 1", "Tip 2", "Tip 3"],
+  "mood": "One-line mood/vibe description like 'Quiet luxury meets weekend ease'"
+}`;
 
-If no good alternatives exist for a piece, leave alternativeSwaps as an empty array.
-Only include products whose IDs exist in the catalog.`;
+    const userMessage = `Style a ${gender === "women" ? "women's" : "men's"} outfit.
+Vibe: ${vibe || "classic old-money elegance"}
 
-    const userMessage = `Build a complete outfit for a ${gender || "unisex"} look.
-${occasion ? `Occasion: ${occasion}` : "Occasion: everyday casual-elegant"}
-${style ? `Style preference: ${style}` : "Style preference: classic old-money"}
+Available products in our collection:
+${productList}
 
-Available products:
-${productList}`;
+Remember: build the BEST possible outfit from these exact products. Be creative with layering and combinations.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -94,7 +100,6 @@ ${productList}`;
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
-
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("Invalid AI response format");
 

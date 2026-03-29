@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, ArrowRight, RefreshCw, ShoppingBag, ChevronLeft } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, ShoppingBag, ChevronLeft, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { StoreHeader } from "@/components/StoreHeader";
 import { StoreFooter } from "@/components/StoreFooter";
@@ -8,47 +8,71 @@ import { staticProducts, type StaticProduct } from "@/data/staticProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
+import mannequinMale from "@/assets/mannequin-male.png";
+import mannequinFemale from "@/assets/mannequin-female.png";
 
 type Gender = "men" | "women";
-type Occasion = "everyday" | "smart-casual" | "formal" | "weekend";
-type Style = "classic" | "minimal" | "layered" | "sporty-chic";
+
+interface OutfitPiece {
+  productId: string;
+  zone: "head" | "top" | "mid" | "outer" | "bottom" | "feet" | "accessory";
+  role: string;
+  reason: string;
+}
 
 interface OutfitResult {
   outfitName: string;
   selectedProductIds: string[];
   explanation: string;
-  piecesBreakdown: Array<{
-    productId: string;
-    role: string;
-    reason: string;
-  }>;
+  pieces: OutfitPiece[];
   stylingTips: string[];
-  alternativeSwaps: Array<{
-    originalId: string;
-    alternativeId: string;
-    reason: string;
-  }>;
+  mood: string;
 }
 
-const occasions: Array<{ value: Occasion; label: string; emoji: string }> = [
-  { value: "everyday", label: "Everyday", emoji: "☀️" },
-  { value: "smart-casual", label: "Smart Casual", emoji: "✨" },
-  { value: "formal", label: "Formal", emoji: "🎩" },
-  { value: "weekend", label: "Weekend", emoji: "🌿" },
+const vibes = [
+  { value: "classic", label: "Classic", desc: "Timeless & refined" },
+  { value: "relaxed", label: "Relaxed", desc: "Effortless weekend" },
+  { value: "layered", label: "Layered", desc: "Textured depth" },
+  { value: "bold", label: "Bold", desc: "Statement pieces" },
 ];
 
-const styles: Array<{ value: Style; label: string }> = [
-  { value: "classic", label: "Classic" },
-  { value: "minimal", label: "Minimal" },
-  { value: "layered", label: "Layered" },
-  { value: "sporty-chic", label: "Sporty Chic" },
-];
+// Position products around the mannequin based on zone
+const zonePositions: Record<string, { top: string; left?: string; right?: string }> = {
+  head: { top: "2%", right: "-60%" },
+  top: { top: "22%", left: "-60%" },
+  mid: { top: "30%", right: "-60%" },
+  outer: { top: "18%", left: "-60%" },
+  bottom: { top: "55%", left: "-60%" },
+  feet: { top: "78%", right: "-60%" },
+  accessory: { top: "45%", right: "-60%" },
+};
+
+// Alternate sides when multiple items land on the same side
+function getAlternatedPositions(pieces: OutfitPiece[]) {
+  let leftCount = 0;
+  let rightCount = 0;
+  
+  return pieces.map((piece) => {
+    const defaultPos = zonePositions[piece.zone] || zonePositions.top;
+    const isLeft = "left" in defaultPos;
+    
+    // Alternate to avoid stacking
+    if (isLeft) {
+      const offset = leftCount * 18;
+      leftCount++;
+      return { ...piece, style: { top: `${parseInt(defaultPos.top!) + offset}%`, left: "-55%" } };
+    } else {
+      const offset = rightCount * 18;
+      rightCount++;
+      return { ...piece, style: { top: `${parseInt(defaultPos.top!) + offset}%`, right: "-55%" } };
+    }
+  });
+}
 
 export default function OutfitBuilder() {
   const [step, setStep] = useState(0);
   const [gender, setGender] = useState<Gender | null>(null);
-  const [occasion, setOccasion] = useState<Occasion | null>(null);
-  const [style, setStyle] = useState<Style | null>(null);
+  const [vibe, setVibe] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutfitResult | null>(null);
   const [error, setError] = useState("");
@@ -71,6 +95,11 @@ export default function OutfitBuilder() {
     [resultProducts]
   );
 
+  const positionedPieces = useMemo(() => {
+    if (!result) return [];
+    return getAlternatedPositions(result.pieces);
+  }, [result]);
+
   const handleGenerate = async () => {
     setLoading(true);
     setError("");
@@ -79,9 +108,8 @@ export default function OutfitBuilder() {
     try {
       const { data, error: fnError } = await supabase.functions.invoke("outfit-suggestion", {
         body: {
-          gender: gender || "unisex",
-          occasion: occasion || "everyday",
-          style: style || "classic",
+          gender: gender || "men",
+          vibe: vibe || "classic",
           products: filteredProducts.map((p) => ({
             id: p.id,
             title: p.title,
@@ -96,7 +124,7 @@ export default function OutfitBuilder() {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
       setResult(data);
-      setStep(3);
+      setStep(2);
     } catch (e) {
       console.error(e);
       setError("Could not generate outfit. Please try again.");
@@ -106,34 +134,16 @@ export default function OutfitBuilder() {
   };
 
   const handleAddAllToCart = () => {
-    resultProducts.forEach((p) => {
-      addStaticItem(p, "M", 1);
-    });
+    resultProducts.forEach((p) => addStaticItem(p, "M", 1));
     toast.success(`${resultProducts.length} items added to bag`);
   };
 
   const resetAll = () => {
     setStep(0);
     setGender(null);
-    setOccasion(null);
-    setStyle(null);
+    setVibe(null);
     setResult(null);
     setError("");
-  };
-
-  const canProceed = () => {
-    if (step === 0) return gender !== null;
-    if (step === 1) return occasion !== null;
-    if (step === 2) return style !== null;
-    return false;
-  };
-
-  const handleNext = () => {
-    if (step < 2) {
-      setStep(step + 1);
-    } else if (step === 2) {
-      handleGenerate();
-    }
   };
 
   return (
@@ -141,7 +151,7 @@ export default function OutfitBuilder() {
       <StoreHeader />
 
       <main className="pt-24 pb-20">
-        <div className="container max-w-2xl mx-auto px-5">
+        <div className="container max-w-3xl mx-auto px-5">
           {/* Header */}
           <motion.div
             className="text-center mb-10"
@@ -153,17 +163,17 @@ export default function OutfitBuilder() {
               <Sparkles className="w-3.5 h-3.5" /> AI Stylist
             </p>
             <h1 className="font-serif text-3xl md:text-4xl text-foreground mb-3">
-              Build Your Outfit
+              Build Your Look
             </h1>
             <p className="font-sans text-sm text-muted-foreground max-w-md mx-auto">
-              Answer a few questions and let our AI curate the perfect ensemble from our collection.
+              Pick your vibe — our AI curates the perfect outfit from our collection.
             </p>
           </motion.div>
 
           {/* Progress */}
-          {step < 3 && !loading && (
-            <div className="flex items-center gap-2 mb-10 max-w-xs mx-auto">
-              {[0, 1, 2].map((s) => (
+          {step < 2 && !loading && (
+            <div className="flex items-center gap-2 mb-10 max-w-[120px] mx-auto">
+              {[0, 1].map((s) => (
                 <div
                   key={s}
                   className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${
@@ -184,16 +194,24 @@ export default function OutfitBuilder() {
                 exit={{ opacity: 0 }}
                 className="text-center py-20"
               >
-                <motion.div
-                  className="mx-auto w-16 h-16 rounded-full border-2 border-foreground/10 border-t-foreground flex items-center justify-center mb-6"
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                >
-                  <Sparkles className="w-5 h-5 text-foreground" />
-                </motion.div>
-                <p className="font-serif text-lg text-foreground mb-2">Curating your look</p>
+                <div className="relative mx-auto w-24 h-24 mb-6">
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-2 border-border"
+                    animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.1, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <motion.div
+                    className="absolute inset-2 rounded-full border-2 border-foreground/20 border-t-foreground"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-foreground" />
+                  </div>
+                </div>
+                <p className="font-serif text-lg text-foreground mb-2">Styling your look</p>
                 <p className="font-sans text-[11px] text-muted-foreground uppercase tracking-[0.15em]">
-                  Analyzing style, color harmony & fit
+                  Matching colors, textures & proportions
                 </p>
               </motion.div>
             )}
@@ -206,34 +224,37 @@ export default function OutfitBuilder() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
+                className="space-y-8"
               >
                 <div className="text-center">
-                  <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Step 1 of 3</p>
-                  <h2 className="font-serif text-xl text-foreground">Who are you styling?</h2>
+                  <h2 className="font-serif text-xl text-foreground">Who are we styling?</h2>
                 </div>
-                <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
                   {(["men", "women"] as Gender[]).map((g) => (
                     <button
                       key={g}
-                      onClick={() => setGender(g)}
-                      className={`relative h-28 rounded-sm border-2 flex flex-col items-center justify-center gap-2 transition-all duration-300 ${
-                        gender === g
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground/40 text-foreground"
-                      }`}
+                      onClick={() => { setGender(g); setStep(1); }}
+                      className="group relative overflow-hidden rounded-sm border border-border hover:border-foreground/30 transition-all duration-500"
                     >
-                      <span className="font-serif text-2xl">{g === "men" ? "♂" : "♀"}</span>
-                      <span className="font-sans text-[11px] uppercase tracking-[0.15em] font-medium">
-                        {g === "men" ? "Men" : "Women"}
-                      </span>
+                      <div className="aspect-[3/4] bg-secondary/30 flex items-center justify-center p-6">
+                        <img
+                          src={g === "men" ? mannequinMale : mannequinFemale}
+                          alt={g === "men" ? "Men" : "Women"}
+                          className="h-full object-contain opacity-40 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
+                        />
+                      </div>
+                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-background via-background/80 to-transparent p-4 pt-10">
+                        <span className="font-sans text-[11px] uppercase tracking-[0.2em] font-medium text-foreground">
+                          {g === "men" ? "Menswear" : "Womenswear"}
+                        </span>
+                      </div>
                     </button>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* Step 1: Occasion */}
+            {/* Step 1: Vibe */}
             {step === 1 && !loading && (
               <motion.div
                 key="step1"
@@ -241,81 +262,66 @@ export default function OutfitBuilder() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -30 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
+                className="space-y-8"
               >
                 <div className="text-center">
-                  <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Step 2 of 3</p>
-                  <h2 className="font-serif text-xl text-foreground">What's the occasion?</h2>
+                  <h2 className="font-serif text-xl text-foreground">What's the vibe?</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
-                  {occasions.map((o) => (
+                  {vibes.map((v) => (
                     <button
-                      key={o.value}
-                      onClick={() => setOccasion(o.value)}
-                      className={`h-20 rounded-sm border-2 flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${
-                        occasion === o.value
+                      key={v.value}
+                      onClick={() => setVibe(v.value)}
+                      className={`h-20 rounded-sm border-2 flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
+                        vibe === v.value
                           ? "border-foreground bg-foreground text-background"
                           : "border-border hover:border-foreground/40 text-foreground"
                       }`}
                     >
-                      <span className="text-lg">{o.emoji}</span>
-                      <span className="font-sans text-[11px] uppercase tracking-[0.12em] font-medium">{o.label}</span>
+                      <span className="font-sans text-[12px] font-medium">{v.label}</span>
+                      <span className={`font-sans text-[10px] ${vibe === v.value ? "text-background/60" : "text-muted-foreground"}`}>
+                        {v.desc}
+                      </span>
                     </button>
                   ))}
                 </div>
-              </motion.div>
-            )}
 
-            {/* Step 2: Style */}
-            {step === 2 && !loading && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -30 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                <div className="text-center">
-                  <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-1">Step 3 of 3</p>
-                  <h2 className="font-serif text-xl text-foreground">Pick your style vibe</h2>
-                </div>
-                <div className="flex flex-wrap justify-center gap-3 max-w-md mx-auto">
-                  {styles.map((s) => (
-                    <button
-                      key={s.value}
-                      onClick={() => setStyle(s.value)}
-                      className={`h-11 px-6 rounded-sm border-2 font-sans text-[11px] uppercase tracking-[0.12em] font-medium transition-all duration-300 ${
-                        style === s.value
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground/40 text-foreground"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+                <div className="flex gap-3 max-w-sm mx-auto">
+                  <button
+                    onClick={() => setStep(0)}
+                    className="h-12 px-5 border border-border font-sans text-[11px] uppercase tracking-[0.15em] text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Back
+                  </button>
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!vibe}
+                    className="flex-1 h-12 bg-foreground text-background font-sans text-[11px] uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Style Me
+                  </button>
                 </div>
               </motion.div>
             )}
 
             {/* Result */}
-            {step === 3 && result && !loading && (
+            {step === 2 && result && !loading && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-8"
+                className="space-y-10"
               >
-                {/* Outfit Name & Explanation */}
-                <div className="text-center space-y-3">
+                {/* Outfit Header */}
+                <div className="text-center space-y-2">
                   <motion.p
                     className="font-sans text-[10px] uppercase tracking-[0.3em] text-gold"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
                   >
-                    Your curated look
+                    {result.mood || "Your curated look"}
                   </motion.p>
                   <motion.h2
                     className="font-serif text-2xl md:text-3xl text-foreground"
@@ -325,69 +331,104 @@ export default function OutfitBuilder() {
                   >
                     {result.outfitName}
                   </motion.h2>
-                  <motion.p
-                    className="font-sans text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    {result.explanation}
-                  </motion.p>
                 </div>
 
-                {/* Product Cards */}
-                <div className={`grid gap-4 ${resultProducts.length === 1 ? "grid-cols-1 max-w-xs mx-auto" : resultProducts.length === 2 ? "grid-cols-2" : resultProducts.length === 3 ? "grid-cols-3" : "grid-cols-2 md:grid-cols-4"}`}>
-                  {resultProducts.map((product, i) => {
-                    const breakdown = result.piecesBreakdown.find(
-                      (b) => b.productId === product.id
-                    );
-                    return (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 + i * 0.1 }}
-                        className="group"
-                      >
-                        <Link to={`/product/static/${product.handle}`}>
-                          <div className="aspect-square bg-secondary/50 rounded-sm overflow-hidden mb-3 relative">
-                            <img
-                              src={product.image}
-                              alt={product.title}
-                              className="w-full h-full object-contain mix-blend-multiply p-4 group-hover:scale-105 transition-transform duration-500"
-                            />
-                            {breakdown && (
-                              <div className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm px-2 py-1 rounded-sm">
-                                <span className="font-sans text-[9px] uppercase tracking-[0.15em] text-foreground font-medium">
-                                  {breakdown.role}
-                                </span>
+                {/* Mannequin + Outfit Display */}
+                <motion.div
+                  className="relative mx-auto"
+                  style={{ maxWidth: "560px" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                >
+                  <div className="relative flex justify-center">
+                    {/* Mannequin */}
+                    <div className="relative w-40 md:w-48 flex-shrink-0">
+                      <img
+                        src={gender === "women" ? mannequinFemale : mannequinMale}
+                        alt="Mannequin"
+                        className="w-full opacity-20"
+                        width={512}
+                        height={1024}
+                      />
+
+                      {/* Overlay product images on mannequin */}
+                      {positionedPieces.map((piece, i) => {
+                        const product = staticProducts.find((p) => p.id === piece.productId);
+                        if (!product) return null;
+                        const isLeft = "left" in piece.style;
+
+                        return (
+                          <motion.div
+                            key={piece.productId}
+                            className="absolute"
+                            style={{
+                              top: piece.style.top,
+                              ...(isLeft ? { left: piece.style.left } : { right: piece.style.right }),
+                              width: "110%",
+                            }}
+                            initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 + i * 0.15 }}
+                          >
+                            <Link
+                              to={`/product/static/${product.handle}`}
+                              className="group flex items-center gap-2"
+                              style={{ flexDirection: isLeft ? "row-reverse" : "row" }}
+                            >
+                              {/* Connecting line */}
+                              <div
+                                className={`hidden md:block h-px bg-border/60 flex-shrink-0`}
+                                style={{ width: "24px" }}
+                              />
+
+                              {/* Product card */}
+                              <div className="bg-background border border-border/60 rounded-sm p-2 shadow-sm hover:shadow-md hover:border-foreground/20 transition-all duration-300 w-32 md:w-36">
+                                <div className="aspect-square bg-secondary/30 rounded-sm overflow-hidden mb-1.5">
+                                  <img
+                                    src={product.image}
+                                    alt={product.title}
+                                    className="w-full h-full object-contain mix-blend-multiply p-2 group-hover:scale-110 transition-transform duration-500"
+                                    loading="lazy"
+                                  />
+                                </div>
+                                <p className="font-sans text-[9px] uppercase tracking-[0.1em] text-gold/80 mb-0.5">
+                                  {piece.role}
+                                </p>
+                                <p className="font-serif text-[11px] text-foreground leading-tight truncate">
+                                  {product.title}
+                                </p>
+                                <p className="font-sans text-[10px] text-muted-foreground mt-0.5">
+                                  {product.currency} {product.price.toLocaleString()}
+                                </p>
                               </div>
-                            )}
-                          </div>
-                          <p className="font-serif text-sm text-foreground mb-0.5 group-hover:underline underline-offset-2">{product.title}</p>
-                          <p className="font-sans text-[11px] text-muted-foreground">
-                            {product.currency} {product.price.toLocaleString()}
-                          </p>
-                        </Link>
-                        {breakdown && (
-                          <p className="font-sans text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">
-                            {breakdown.reason}
-                          </p>
-                        )}
-                      </motion.div>
-                    );
-                  })}
-                </div>
+                            </Link>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Explanation */}
+                <motion.p
+                  className="font-sans text-sm text-muted-foreground text-center max-w-lg mx-auto leading-relaxed"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  {result.explanation}
+                </motion.p>
 
                 {/* Total */}
                 <motion.div
-                  className="flex items-center justify-between border-t border-b border-border py-4"
+                  className="flex items-center justify-between border-t border-b border-border py-4 max-w-md mx-auto"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
+                  transition={{ delay: 0.9 }}
                 >
                   <span className="font-sans text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-                    Complete outfit
+                    Complete look · {resultProducts.length} pieces
                   </span>
                   <span className="font-serif text-lg text-foreground">
                     EGP {totalPrice.toLocaleString()}
@@ -397,13 +438,13 @@ export default function OutfitBuilder() {
                 {/* Styling Tips */}
                 {result.stylingTips?.length > 0 && (
                   <motion.div
-                    className="space-y-2"
+                    className="space-y-2 max-w-md mx-auto"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8 }}
+                    transition={{ delay: 1 }}
                   >
                     <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-foreground font-medium">
-                      Styling tips
+                      How to wear it
                     </p>
                     {result.stylingTips.map((tip, i) => (
                       <p key={i} className="font-sans text-[11px] text-muted-foreground leading-relaxed">
@@ -413,51 +454,18 @@ export default function OutfitBuilder() {
                   </motion.div>
                 )}
 
-                {/* Alternative Swaps */}
-                {result.alternativeSwaps?.length > 0 && (
-                  <motion.div
-                    className="space-y-3"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.9 }}
-                  >
-                    <p className="font-sans text-[10px] uppercase tracking-[0.2em] text-foreground font-medium">
-                      Alternative swaps
-                    </p>
-                    {result.alternativeSwaps.map((swap, i) => {
-                      const orig = staticProducts.find((p) => p.id === swap.originalId);
-                      const alt = staticProducts.find((p) => p.id === swap.alternativeId);
-                      if (!orig || !alt) return null;
-                      return (
-                        <div key={i} className="flex items-center gap-3 bg-muted/30 rounded-sm p-3">
-                          <div className="w-10 h-10 bg-secondary/50 rounded-sm overflow-hidden flex-shrink-0">
-                            <img src={orig.image} alt="" className="w-full h-full object-contain mix-blend-multiply p-1" />
-                          </div>
-                          <ArrowRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                          <div className="w-10 h-10 bg-secondary/50 rounded-sm overflow-hidden flex-shrink-0">
-                            <img src={alt.image} alt="" className="w-full h-full object-contain mix-blend-multiply p-1" />
-                          </div>
-                          <p className="font-sans text-[10px] text-muted-foreground leading-relaxed flex-1">
-                            {swap.reason}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </motion.div>
-                )}
-
                 {/* Actions */}
                 <motion.div
-                  className="flex gap-3 pt-2"
+                  className="flex gap-3 max-w-md mx-auto"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1 }}
+                  transition={{ delay: 1.1 }}
                 >
                   <button
                     onClick={resetAll}
                     className="flex-1 h-12 border border-border font-sans text-[11px] uppercase tracking-[0.15em] text-foreground hover:bg-muted/50 transition-colors flex items-center justify-center gap-2"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" /> Start Over
+                    <RefreshCw className="w-3.5 h-3.5" /> New Look
                   </button>
                   <button
                     onClick={handleAddAllToCart}
@@ -479,40 +487,6 @@ export default function OutfitBuilder() {
             >
               {error}
             </motion.p>
-          )}
-
-          {/* Navigation Buttons */}
-          {step < 3 && !loading && (
-            <motion.div
-              className="flex gap-3 mt-10 max-w-sm mx-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              {step > 0 && (
-                <button
-                  onClick={() => setStep(step - 1)}
-                  className="h-12 px-6 border border-border font-sans text-[11px] uppercase tracking-[0.15em] text-foreground hover:bg-muted/50 transition-colors flex items-center gap-2"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" /> Back
-                </button>
-              )}
-              <button
-                onClick={handleNext}
-                disabled={!canProceed()}
-                className="flex-1 h-12 bg-foreground text-background font-sans text-[11px] uppercase tracking-[0.15em] hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {step === 2 ? (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" /> Generate Outfit
-                  </>
-                ) : (
-                  <>
-                    Continue <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </motion.div>
           )}
         </div>
       </main>
