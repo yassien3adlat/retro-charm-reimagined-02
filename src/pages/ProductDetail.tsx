@@ -5,7 +5,8 @@ import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { StoreHeader } from "@/components/StoreHeader";
 import { StoreFooter } from "@/components/StoreFooter";
-import { Loader2, ArrowLeft, Check, Minus, Plus, ChevronDown, Heart } from "lucide-react";
+import { SizeChartModal } from "@/components/SizeChartModal";
+import { Loader2, ArrowLeft, Check, Minus, Plus, ChevronDown, Heart, Ruler } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProductNode {
@@ -30,6 +31,7 @@ export default function ProductDetail() {
   const [justAdded, setJustAdded] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const isCartLoading = useCartStore((s) => s.isLoading);
 
@@ -186,10 +188,20 @@ export default function ProductDetail() {
 
             {product.options.map((option) => (
               <div key={option.name} className="mt-6">
-                <p className="mb-3 font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
-                  {option.name}
-                  {currentVariant && <span className="ml-2 text-muted-foreground">— {currentVariant.selectedOptions.find((o) => o.name === option.name)?.value}</span>}
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
+                    {option.name}
+                    {currentVariant && <span className="ml-2 text-muted-foreground">— {currentVariant.selectedOptions.find((o) => o.name === option.name)?.value}</span>}
+                  </p>
+                  {option.name.toLowerCase() === "size" && (
+                    <button
+                      onClick={() => setSizeChartOpen(true)}
+                      className="flex items-center gap-1 font-sans text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Ruler className="h-3 w-3" /> Size Guide
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {option.values.map((value) => {
                     const matchingVariant = product.variants.edges.find((v) => v.node.selectedOptions.some((o) => o.name === option.name && o.value === value));
@@ -294,6 +306,12 @@ export default function ProductDetail() {
 
       <div className="hidden md:block"><StoreFooter /></div>
       <div className="pb-20 md:hidden"><StoreFooter /></div>
+
+      <SizeChartModal
+        open={sizeChartOpen}
+        onOpenChange={setSizeChartOpen}
+        productCategory="clothing"
+      />
     </div>
   );
 }

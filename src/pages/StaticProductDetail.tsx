@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronDown, Heart, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, Heart, Minus, Plus, Ruler } from "lucide-react";
 import { StoreHeader } from "@/components/StoreHeader";
+import { SizeChartModal } from "@/components/SizeChartModal";
 import { StoreFooter } from "@/components/StoreFooter";
 import { getProductByHandle } from "@/data/staticProducts";
 import { useCartStore } from "@/stores/cartStore";
@@ -15,6 +16,7 @@ export default function StaticProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState("M");
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const addStaticItem = useCartStore((s) => s.addStaticItem);
   const { toggle: toggleWishlist, has: hasWishlist } = useWishlistStore();
 
@@ -102,9 +104,17 @@ export default function StaticProductDetail() {
 
             {/* Size selector */}
             <div className="mt-6">
-              <p className="mb-3 font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
-                Size <span className="ml-2 text-muted-foreground">— {selectedSize}</span>
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
+                  Size <span className="ml-2 text-muted-foreground">— {selectedSize}</span>
+                </p>
+                <button
+                  onClick={() => setSizeChartOpen(true)}
+                  className="flex items-center gap-1 font-sans text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Ruler className="h-3 w-3" /> Size Guide
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((size) => (
                   <motion.button
@@ -182,6 +192,13 @@ export default function StaticProductDetail() {
 
       <div className="hidden md:block"><StoreFooter /></div>
       <div className="pb-32 md:hidden"><StoreFooter /></div>
+
+      <SizeChartModal
+        open={sizeChartOpen}
+        onOpenChange={setSizeChartOpen}
+        productCategory={product.category === "men" && product.tags.includes("sneakers") ? "sneakers" : "clothing"}
+        onSizeSelect={setSelectedSize}
+      />
     </div>
   );
 }
