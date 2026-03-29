@@ -20,7 +20,7 @@ const categoryMeta: Record<string, { title: string; subtitle: string; descriptio
   accessories: {
     title: "Accessories",
     subtitle: "Finishing Touches",
-    description: "The details that complete the look. Belts, bags, and more coming soon.",
+    description: "The details that complete the look. Sunglasses, watches, bags, and timeless leather goods.",
   },
   "new-in": {
     title: "New In",
