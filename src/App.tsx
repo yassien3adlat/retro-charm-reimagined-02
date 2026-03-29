@@ -12,6 +12,7 @@ const ProductDetail = lazy(() => import("./pages/ProductDetail.tsx"));
 const StaticProductDetail = lazy(() => import("./pages/StaticProductDetail.tsx"));
 const CategoryPage = lazy(() => import("./pages/CategoryPage.tsx"));
 const WishlistPage = lazy(() => import("./pages/WishlistPage.tsx"));
+const OutfitBuilder = lazy(() => import("./pages/OutfitBuilder.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
