@@ -103,11 +103,8 @@ export function SizeChartModal({ open, onOpenChange, productCategory = "clothing
         <DialogTitle className="sr-only">Size Guide</DialogTitle>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center border-b border-border px-6 py-4">
           <h2 className="font-serif text-xl">Size Guide</h2>
-          <button onClick={() => onOpenChange(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         {/* Tabs */}
