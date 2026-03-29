@@ -13,6 +13,7 @@ const navItems = [
   { label: "Men", path: "/category/men" },
   { label: "Women", path: "/category/women" },
   { label: "Accessories", path: "/category/accessories" },
+  { label: "AI Stylist", path: "/outfit-builder" },
 ];
 
 export function StoreHeader() {
