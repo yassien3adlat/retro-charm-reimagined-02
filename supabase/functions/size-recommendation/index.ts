@@ -15,22 +15,44 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = `You are a fashion sizing expert for an old-money style clothing brand. 
-Given body measurements, recommend the best size from the available sizes.
+    const systemPrompt = `You are an expert garment sizing consultant with deep knowledge of body proportions, fabric behavior, and fit standards across international sizing systems.
 
-For clothing: XS, S, M, L, XL
-For sneakers: 39, 40, 41, 42, 43, 44, 45
+Your task: Given body measurements, recommend the BEST size from the available options.
+
+Available clothing sizes and their standard body measurements (in cm):
+- XS: Chest 84-88, Waist 68-72, Hips 88-92, Height 160-165
+- S:  Chest 88-92, Waist 72-76, Hips 92-96, Height 165-170
+- M:  Chest 92-96, Waist 76-80, Hips 96-100, Height 170-175
+- L:  Chest 96-100, Waist 80-84, Hips 100-104, Height 175-180
+- XL: Chest 100-104, Waist 84-88, Hips 104-108, Height 180-185
+
+SIZING LOGIC:
+1. If exact measurements (chest/waist/hips) are provided, match them directly to the size chart. The chest measurement is the primary indicator for tops, waist for bottoms.
+2. If only height and weight are provided, estimate body measurements using BMI and proportional body models:
+   - BMI < 20: lean build, lean toward smaller sizes
+   - BMI 20-23: average, use height-based chart directly
+   - BMI 23-26: slightly above average, consider sizing up
+   - BMI > 26: size up from height-based recommendation
+3. Body type adjustments:
+   - Slim: stay true to size or size down
+   - Athletic: may need to size up for chest/shoulders while waist is smaller
+   - Regular: true to size
+   - Broad: size up, especially for chest and shoulders
+4. When between sizes, recommend the LARGER size for comfort.
+5. If very little data is given, use height as primary indicator and set confidence to "low".
 
 IMPORTANT: Respond ONLY with valid JSON in this exact format:
 {
   "recommendedSize": "M",
   "confidence": "high",
-  "explanation": "Brief 1-2 sentence explanation",
-  "tips": ["Optional fit tip 1", "Optional fit tip 2"]
+  "explanation": "Brief 1-2 sentence explanation of why this size fits best",
+  "tips": ["Specific actionable fit tip 1", "Specific actionable fit tip 2"]
 }
 
-confidence can be "high", "medium", or "low" depending on how much data was provided.
-If very little info is given, still make a reasonable guess but set confidence to "low".`;
+confidence levels:
+- "high": 3+ measurements provided OR height+weight+body type
+- "medium": height+weight OR 1-2 measurements
+- "low": only 1 field provided`;
 
     const userMessage = `Please recommend a size for ${productCategory || "clothing"} based on these measurements:
 ${height ? `- Height: ${height} cm` : "- Height: not provided"}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Ruler, Sparkles, Loader2, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -51,6 +51,11 @@ export function SizeChartModal({ open, onOpenChange, productCategory = "clothing
   const [error, setError] = useState("");
 
   const isShoes = productCategory === "sneakers";
+
+  // Force chart tab for shoes
+  useEffect(() => {
+    if (isShoes) setTab("chart");
+  }, [isShoes, open]);
 
   const handleFindSize = async () => {
     if (!height && !weight && !bodyType && !chest && !waist && !hips) {
@@ -107,25 +112,27 @@ export function SizeChartModal({ open, onOpenChange, productCategory = "clothing
           <h2 className="font-serif text-xl">Size Guide</h2>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-border">
-          <button
-            onClick={() => setTab("chart")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 font-sans text-[11px] uppercase tracking-[0.15em] transition-all ${
-              tab === "chart" ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Ruler className="h-3.5 w-3.5" /> Size Chart
-          </button>
-          <button
-            onClick={() => { setTab("finder"); resetForm(); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 font-sans text-[11px] uppercase tracking-[0.15em] transition-all ${
-              tab === "finder" ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="h-3.5 w-3.5" /> AI Size Finder
-          </button>
-        </div>
+        {/* Tabs - only show if not shoes */}
+        {!isShoes && (
+          <div className="flex border-b border-border">
+            <button
+              onClick={() => setTab("chart")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 font-sans text-[11px] uppercase tracking-[0.15em] transition-all ${
+                tab === "chart" ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Ruler className="h-3.5 w-3.5" /> Size Chart
+            </button>
+            <button
+              onClick={() => { setTab("finder"); resetForm(); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 font-sans text-[11px] uppercase tracking-[0.15em] transition-all ${
+                tab === "finder" ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" /> AI Size Finder
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="overflow-y-auto max-h-[calc(85vh-120px)]">
