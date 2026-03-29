@@ -31,6 +31,7 @@ export default function ProductDetail() {
   const [justAdded, setJustAdded] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const isCartLoading = useCartStore((s) => s.isLoading);
 
