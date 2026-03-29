@@ -16,6 +16,7 @@ export default function StaticProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState("M");
+  const [sizeChartOpen, setSizeChartOpen] = useState(false);
   const addStaticItem = useCartStore((s) => s.addStaticItem);
   const { toggle: toggleWishlist, has: hasWishlist } = useWishlistStore();
 
