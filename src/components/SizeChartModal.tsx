@@ -40,11 +40,6 @@ type Tab = "chart" | "finder";
 
 export function SizeChartModal({ open, onOpenChange, productCategory = "clothing", onSizeSelect }: SizeChartModalProps) {
   const [tab, setTab] = useState<Tab>("chart");
-
-  // Force chart tab for shoes
-  useEffect(() => {
-    if (isShoes) setTab("chart");
-  }, [isShoes, open]);
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [bodyType, setBodyType] = useState("");
@@ -56,6 +51,11 @@ export function SizeChartModal({ open, onOpenChange, productCategory = "clothing
   const [error, setError] = useState("");
 
   const isShoes = productCategory === "sneakers";
+
+  // Force chart tab for shoes
+  useEffect(() => {
+    if (isShoes) setTab("chart");
+  }, [isShoes, open]);
 
   const handleFindSize = async () => {
     if (!height && !weight && !bodyType && !chest && !waist && !hips) {
