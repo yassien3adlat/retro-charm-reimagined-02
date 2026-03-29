@@ -36,6 +36,7 @@ function AppContent() {
           <Route path="/product/static/:handle" element={<StaticProductDetail />} />
           <Route path="/product/:handle" element={<ProductDetail />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/outfit-builder" element={<OutfitBuilder />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
