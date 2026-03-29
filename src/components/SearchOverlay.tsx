@@ -93,7 +93,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             onClick={onClose}
           />
           <motion.div
-            className="fixed inset-x-0 top-0 z-[71] bg-background/98 backdrop-blur-xl shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.1)] max-h-[85svh] overflow-y-auto"
+            className="fixed inset-x-0 top-0 z-[71] bg-background backdrop-blur-xl shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)] max-h-[85svh] overflow-y-auto border-b border-border/30"
             initial={{ y: "-100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "-100%", opacity: 0 }}
