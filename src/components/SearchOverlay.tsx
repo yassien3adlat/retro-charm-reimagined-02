@@ -85,7 +85,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       {isOpen && (
         <>
           <motion.div
-            className="fixed inset-0 z-[70] bg-foreground/40 backdrop-blur-lg"
+            className="fixed inset-0 z-[70] bg-background/60 backdrop-blur-xl"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
