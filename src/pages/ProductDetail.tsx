@@ -306,6 +306,12 @@ export default function ProductDetail() {
 
       <div className="hidden md:block"><StoreFooter /></div>
       <div className="pb-20 md:hidden"><StoreFooter /></div>
+
+      <SizeChartModal
+        open={sizeChartOpen}
+        onOpenChange={setSizeChartOpen}
+        productCategory="clothing"
+      />
     </div>
   );
 }
