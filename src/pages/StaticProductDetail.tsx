@@ -104,9 +104,17 @@ export default function StaticProductDetail() {
 
             {/* Size selector */}
             <div className="mt-6">
-              <p className="mb-3 font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
-                Size <span className="ml-2 text-muted-foreground">— {selectedSize}</span>
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-sans text-[10px] font-medium uppercase tracking-[0.2em] text-foreground">
+                  Size <span className="ml-2 text-muted-foreground">— {selectedSize}</span>
+                </p>
+                <button
+                  onClick={() => setSizeChartOpen(true)}
+                  className="flex items-center gap-1 font-sans text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Ruler className="h-3 w-3" /> Size Guide
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((size) => (
                   <motion.button
