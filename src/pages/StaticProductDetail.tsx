@@ -192,6 +192,13 @@ export default function StaticProductDetail() {
 
       <div className="hidden md:block"><StoreFooter /></div>
       <div className="pb-32 md:hidden"><StoreFooter /></div>
+
+      <SizeChartModal
+        open={sizeChartOpen}
+        onOpenChange={setSizeChartOpen}
+        productCategory={product.category === "men" && product.tags.includes("sneakers") ? "sneakers" : "clothing"}
+        onSizeSelect={setSelectedSize}
+      />
     </div>
   );
 }
