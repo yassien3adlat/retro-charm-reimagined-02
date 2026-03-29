@@ -5,7 +5,8 @@ import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { StoreHeader } from "@/components/StoreHeader";
 import { StoreFooter } from "@/components/StoreFooter";
-import { Loader2, ArrowLeft, Check, Minus, Plus, ChevronDown, Heart } from "lucide-react";
+import { SizeChartModal } from "@/components/SizeChartModal";
+import { Loader2, ArrowLeft, Check, Minus, Plus, ChevronDown, Heart, Ruler } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProductNode {
